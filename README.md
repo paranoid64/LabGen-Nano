@@ -2,6 +2,16 @@
 
 LabGen Nano ist ein kompakter, präziser Funktionsgenerator auf Arduino-Basis, der professionelle Bedienlogik mit bewährter Hardware vereint. Als Herzstück dient das klassische YB2004D V3.0 Display (bekannt vom Prusa i3), welches Buzzer, Encoder, SD-Slot und LCD in einer Einheit vereint. Der Generator liefert Frequenzen von 0 Hz bis 12,5 MHz in den Wellenformen Sinus, Rechteck und Dreieck. Dank der dokumentierten Pinbelegung lässt sich das System flexibel anpassen: Alle Komponenten können auch einzeln verdrahtet oder gegen alternative Displays ausgetauscht werden. Mit getrennten AC- und DC-BNC-Ausgängen ist der LabGen Nano ein vielseitiges Werkzeug.
 
+## KOMPONENTEN:
+- 1x Arduino Nano (oder Uno)
+- 1x AD9833 DDS Modul
+- 1x YB2004D V3.0 LCD Panel (20x4 Zeichen)
+- 1x Widerstand 200 Ohm (Schutzwiderstand)
+- 1x Folienkondensator (für AC-Kopplung)
+- 2x BNC-Einbaubuchsen
+
+
+
 EXP1 und 2 Pins:
 ```
 ____________    ____________  
@@ -36,3 +46,19 @@ Die Verkabelung (Nano zu AD9833)
 | SDAT/DAT    | D11	     | SPI Daten (MOSI)     |
 | SCLK/CLK    | D13	     | SPI Takt (SCK)       |
 | FNC (FS/CS)	| D6	     | Chip Select (F-Sync) |
+
+### SIGNAL-AUSGANG & HARDWARE-SCHUTZ
+
+Der Ausgang schützt den AD9833-Chip und bietet zwei Anschlussarten:
+
+```
+                    Weg A (DC) ----> BNC BUCHSE "DC"
+                               |                 (Direktes Signal mit Offset)
+VOUT (AD9833) --- [200 Ohm] ---+
+                               |
+                    Weg B (AC) ---- [Folienkondensator] ----> BNC BUCHSE "AC"
+                                                              (Null-zentriert)
+
+GND (AD9833) ----------------------------------------------> BNC GEHÄUSE 
+
+```
