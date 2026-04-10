@@ -1,6 +1,6 @@
 # LabGen-Nano
 
-Funktionsgenerator auf Arduino-Basis. Über ein 2004-LCD-Menü mit selektiver Blink-Funktion lassen sich Frequenzen von 0 Hz bis 12,5 MHz sowie verschiedene Wellenformen per Rotary Encoder einstellen. 
+LabGen Nano ist ein kompakter, präziser Funktionsgenerator auf Arduino-Basis, der professionelle Bedienlogik mit bewährter Hardware vereint. Als Herzstück dient das klassische YB2004D V3.0 Display (bekannt vom Prusa i3), welches Buzzer, Encoder, SD-Slot und LCD in einer Einheit vereint. Der Generator liefert Frequenzen von 0 Hz bis 12,5 MHz in den Wellenformen Sinus, Rechteck und Dreieck. Dank der dokumentierten Pinbelegung lässt sich das System flexibel anpassen: Alle Komponenten können auch einzeln verdrahtet oder gegen alternative Displays ausgetauscht werden. Mit getrennten AC- und DC-BNC-Ausgängen ist der LabGen Nano ein vielseitiges Werkzeug.
 
 EXP1 und 2 Pins:
 ```
