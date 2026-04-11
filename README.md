@@ -48,11 +48,13 @@ Pin 04          : SD_CS           -> Nano D10
 Pin 05          : Encoder B       -> Nano A1
 Pin 06          : MOSI (SD)       -> Nano D11
 Pin 07          : SD_DET          -> ---
-Pin 08          : KILL (Button)   -> Nano A4
+Pin 08          : RESET 
 Pin 09          : GND             -> Nano GND
-Pin 10 (Unten R): NC/SW1          -> ---
+Pin 10 (Unten R): KILL (Button)   -> Nano A4  (Der Taster muss angelötet werden)
 
 ```
+
+Oder Taster an A4 GND
 
 ### VERKABELUNG AD9833 (DDS):
 
