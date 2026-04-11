@@ -6,10 +6,11 @@ LabGen Nano ist ein kompakter, präziser Funktionsgenerator auf Arduino-Basis, d
 - 1x Arduino Nano (oder Uno)
 - 1x AD9833 DDS Modul
 - 1x YB2004D V3.0 LCD Panel (20x4 Zeichen)
-- 1x Widerstand 200 Ohm (Schutzwiderstand)
+- 2x Widerstand 220 Ohm (Schutzwiderstand)
 - 1x Folienkondensator (für AC-Kopplung)
 - 2x BNC-Einbaubuchsen
-
+- 1x LED
+- 1x Taster
 
 
 STECKER-LAYOUT (Draufsicht auf die Wannen):
