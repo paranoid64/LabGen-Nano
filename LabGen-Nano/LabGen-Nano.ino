@@ -1,21 +1,25 @@
-
 #include <LiquidCrystal.h>
 
+// LCD Pins bleiben wie bisher
 LiquidCrystal lcd(8, 7, 2, 3, 4, 5);
 
-const int pinBuzzer = 9;   
-const int pinButton = 10;  
-const int pinEncA = A0; 
-const int pinEncB = A1; 
+// Pin-Anpassung für SD-Kompatibilität und DDS
+const int pinBuzzer = A3;
+const int pinButton = A2;
+const int pinKill   = A4;
+const int pinEncA   = A0; 
+const int pinEncB   = A1; 
+const int pinLEDStatus = A5; // Status LED für Output
 
 unsigned long frequenz = 1000;
 unsigned long multiplikator[] = {1, 1000, 1000000}; 
-int einheitModus = 0; // 0=Hz, 1=kHz, 2=MHz, 3=Wave, 4=Output
+int einheitModus = 0; 
 int waveMode = 0; 
 bool outputAktiv = false;
 
 int letzterStatusA;
 unsigned long letzteAenderung = 0;
+bool killGedrueckt = false; // Für Entprellung Switch
 
 bool blinkStatus = true;
 unsigned long letzteBlinkZeit = 0;
@@ -24,8 +28,10 @@ void setup() {
   pinMode(pinBuzzer, OUTPUT);
   digitalWrite(pinBuzzer, LOW); 
   pinMode(pinButton, INPUT_PULLUP);
+  pinMode(pinKill, INPUT_PULLUP);    // Switch Eingang
   pinMode(pinEncA, INPUT_PULLUP); 
   pinMode(pinEncB, INPUT_PULLUP);
+  pinMode(pinLEDStatus, OUTPUT);
   
   lcd.begin(20, 4);
   
@@ -34,7 +40,7 @@ void setup() {
   lcd.print("LabGen-Nano");
   lcd.setCursor(6, 2);
   lcd.print("v1.0 Ready");
-  delay(2000); // 2 Sekunden Pause
+  delay(2000); 
   lcd.clear();
   
   letzterStatusA = digitalRead(pinEncA);
@@ -42,21 +48,42 @@ void setup() {
 }
 
 void loop() {
-  // 1. Encoder DREHEN
+  // 1. Kill-Switch (Start/Stop) mit Entprellung
+  bool killStatus = (digitalRead(pinKill) == LOW); 
+
+  if (killStatus && !killGedrueckt) {
+    // Taste wurde gerade gedrückt
+    outputAktiv = !outputAktiv; 
+    
+    digitalWrite(pinBuzzer, HIGH); 
+    delay(80); 
+    digitalWrite(pinBuzzer, LOW);
+    
+    updateDisplay();
+    
+    killGedrueckt = true; 
+    letzteAenderung = millis(); // Zeitstempel merken
+  } 
+
+  // Nur zurücksetzen, wenn Taste losgelassen UND 50ms vergangen sind
+  if (!killStatus && killGedrueckt) {
+    if (millis() - letzteAenderung > 80) { 
+      killGedrueckt = false;
+    }
+  }
+
+  // 2. Encoder DREHEN
   int aktuellerStatusA = digitalRead(pinEncA);
   if (letzterStatusA == HIGH && aktuellerStatusA == LOW) {
     if (millis() - letzteAenderung > 50) {
       bool hoch = (digitalRead(pinEncB) == LOW); 
       
-      if (einheitModus < 3) { // Hz, kHz, MHz Bereich
+      if (einheitModus < 3) { 
         if (hoch) frequenz += multiplikator[einheitModus];
         else if (frequenz >= multiplikator[einheitModus]) frequenz -= multiplikator[einheitModus];
       } 
-      else if (einheitModus == 3) { // Wellenform
+      else if (einheitModus == 3) { 
         waveMode = (waveMode + (hoch ? 1 : 2)) % 3;
-      }
-      else if (einheitModus == 4) { // Output Start/Stop
-        outputAktiv = !outputAktiv;
       }
 
       if (frequenz > 12500000) frequenz = 12500000;
@@ -66,26 +93,27 @@ void loop() {
   }
   letzterStatusA = aktuellerStatusA;
 
-  // 2. Encoder KLICKEN
+  // 3. Encoder KLICKEN (Menü-Wechsel)
   if (digitalRead(pinButton) == LOW) {
     digitalWrite(pinBuzzer, HIGH); delay(30); digitalWrite(pinBuzzer, LOW);
-    
-    einheitModus = (einheitModus + 1) % 5; // 5 Positionen
+    einheitModus = (einheitModus + 1) % 5; 
     updateDisplay();
     while(digitalRead(pinButton) == LOW); 
   }
 
-  // Blink-Timer: Alle 500ms den Status umkehren
+  // 4. Blink-Timer
   if (millis() - letzteBlinkZeit > 500) {
     blinkStatus = !blinkStatus;
     letzteBlinkZeit = millis();
-    updateDisplay(); // Display aktualisieren
+    updateDisplay();
   }
+
+  digitalWrite(pinLEDStatus, outputAktiv ? HIGH : LOW);
 
 }
 
 void updateDisplay() {
-  char tempBuffer[10]; // Sicherer Puffer für kleine Zahlenblöcke
+  char tempBuffer[10]; 
 
   // Zeile 1: Frequenz
   lcd.setCursor(0, 0);
@@ -95,34 +123,22 @@ void updateDisplay() {
   unsigned long khz = (frequenz % 1000000) / 1000;
   unsigned long hz  = frequenz % 1000;
 
-  // MHz Block
+  // MHz
   lcd.setCursor(5, 0);
-  if (einheitModus == 2 && !blinkStatus) {
-    lcd.print("  "); 
-  } else {
-    sprintf(tempBuffer, "%02lu", mhz);
-    lcd.print(tempBuffer);
-  }
+  if (einheitModus == 2 && !blinkStatus) lcd.print("  "); 
+  else { sprintf(tempBuffer, "%02lu", mhz); lcd.print(tempBuffer); }
   lcd.print(".");
 
-  // kHz Block
+  // kHz
   lcd.setCursor(8, 0);
-  if (einheitModus == 1 && !blinkStatus) {
-    lcd.print("   "); 
-  } else {
-    sprintf(tempBuffer, "%03lu", khz);
-    lcd.print(tempBuffer);
-  }
+  if (einheitModus == 1 && !blinkStatus) lcd.print("   "); 
+  else { sprintf(tempBuffer, "%03lu", khz); lcd.print(tempBuffer); }
   lcd.print(".");
 
-  // Hz Block
+  // Hz
   lcd.setCursor(12, 0);
-  if (einheitModus == 0 && !blinkStatus) {
-    lcd.print("   "); 
-  } else {
-    sprintf(tempBuffer, "%03lu", hz);
-    lcd.print(tempBuffer);
-  }
+  if (einheitModus == 0 && !blinkStatus) lcd.print("   "); 
+  else { sprintf(tempBuffer, "%03lu", hz); lcd.print(tempBuffer); }
   lcd.print(" Hz");
 
   // Zeile 2: Pfeil
@@ -138,21 +154,19 @@ void updateDisplay() {
   lcd.setCursor(0, 2);
   lcd.print("WAVE: "); 
   lcd.setCursor(6, 2);
-  if (einheitModus == 3 && !blinkStatus) {
-    lcd.print("        "); 
-  } else {
+  if (einheitModus == 3 && !blinkStatus) lcd.print("        "); 
+  else {
     if (waveMode == 0) lcd.print("SINUS   ");
-    if (waveMode == 1) lcd.print("RECHTECK");
-    if (waveMode == 2) lcd.print("DREIECK ");
+    else if (waveMode == 1) lcd.print("RECHTECK");
+    else if (waveMode == 2) lcd.print("DREIECK ");
   }
 
-  // Zeile 4: Output
+  // Zeile 4: Status
   lcd.setCursor(0, 3);
-  lcd.print("OUT : "); 
-  lcd.setCursor(6, 3);
-  if (einheitModus == 4 && !blinkStatus) {
-    lcd.print("        "); 
+  if (outputAktiv) {
+    lcd.print(">>> SIGNAL ON  <<<");
   } else {
-    lcd.print(outputAktiv ? "RUNNING " : "STOPPED ");
+    lcd.print(">>> SIGNAL OFF <<<");
   }
+
 }
