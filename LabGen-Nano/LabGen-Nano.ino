@@ -150,7 +150,7 @@ void updateDisplay() {
   lcd.print(F(" Hz"));
 
   lcd.setCursor(0, 1);
-  lcd.print(F("                ")); // Auf 16 Leerzeichen gekürzt
+  lcd.print(F("                "));
   if (einheitModus < 3) {
     int pfeilPos = (einheitModus == 2) ? 5 : (einheitModus == 1 ? 9 : 13);
     lcd.setCursor(pfeilPos, 1);
