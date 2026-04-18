@@ -60,11 +60,11 @@ Oder Taster an A4 GND
 ### VERKABELUNG AD9833 (DDS):
 
 ```
-VCC          -> Nano 5V
+VCC          -> Nano 3.3V
 GND          -> Nano GND
 SDAT (MOSI)  -> Nano D11 (Parallel zu EXP2-06)
 SCLK (SCK)   -> Nano D13 (Parallel zu EXP2-02)
-FNC (CS)     -> Nano D9  (Eigener Pin)
+FNC (CS)     -> Nano D10
 
 ```
 
