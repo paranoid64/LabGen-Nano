@@ -45,7 +45,7 @@ Pin 10 (Unten R): VCC (+5V)       -> Nano 5V
 Pin 01 (Oben L) : MISO (SD)       -> Nano D12
 Pin 02 (Unten L): SCK (SD)        -> Nano D13
 Pin 03          : Encoder A       -> Nano A0
-Pin 04          : SD_CS           -> Nano D10
+Pin 04          : SD_CS           -> Nano D9
 Pin 05          : Encoder B       -> Nano A1
 Pin 06          : MOSI (SD)       -> Nano D11
 Pin 07          : SD_DET          -> ---
