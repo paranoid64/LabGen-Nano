@@ -1,7 +1,11 @@
 #include <LiquidCrystal.h>
+#include "AD9833.h"
 
 // LCD Pins bleiben wie bisher
 LiquidCrystal lcd(8, 7, 2, 3, 4, 5);
+
+// (Pin 10 ist FSYNC)
+AD9833 dds(10);
 
 // Pin-Anpassung für SD-Kompatibilität und DDS
 const int pinBuzzer = A3;
@@ -39,12 +43,18 @@ void setup() {
   lcd.setCursor(3, 1);
   lcd.print("LabGen-Nano");
   lcd.setCursor(6, 2);
-  lcd.print("v1.0 Ready");
+  lcd.print("v1.0");
   delay(2000); 
   lcd.clear();
   
   letzterStatusA = digitalRead(pinEncA);
   updateDisplay();
+
+  SPI.begin(); // Robs Library braucht meist ein explizites SPI.begin()
+  dds.begin();
+  dds.setFrequency(1000, 0); // 1000 Hz auf Register 0
+  dds.setWave(AD9833_OFF);   // Startet im Standby
+  
 }
 
 void loop() {
@@ -54,9 +64,11 @@ void loop() {
   if (killStatus && !killGedrueckt) {
     // Taste wurde gerade gedrückt
     outputAktiv = !outputAktiv; 
+
+    applyDDS();
     
     digitalWrite(pinBuzzer, HIGH); 
-    delay(80); 
+    delay(100); 
     digitalWrite(pinBuzzer, LOW);
     
     updateDisplay();
@@ -67,7 +79,7 @@ void loop() {
 
   // Nur zurücksetzen, wenn Taste losgelassen UND 50ms vergangen sind
   if (!killStatus && killGedrueckt) {
-    if (millis() - letzteAenderung > 80) { 
+    if (millis() - letzteAenderung > 100) { 
       killGedrueckt = false;
     }
   }
@@ -78,6 +90,12 @@ void loop() {
     if (millis() - letzteAenderung > 50) {
       bool hoch = (digitalRead(pinEncB) == LOW); 
       
+      // SICHERHEIT: Falls der Output aktiv war, schalten wir ihn jetzt aus
+      if (outputAktiv) {
+        outputAktiv = false;
+        applyDDS(); // Stoppt das Signal hardwareseitig
+      }
+
       if (einheitModus < 3) { 
         if (hoch) frequenz += multiplikator[einheitModus];
         else if (frequenz >= multiplikator[einheitModus]) frequenz -= multiplikator[einheitModus];
@@ -86,7 +104,7 @@ void loop() {
         waveMode = (waveMode + (hoch ? 1 : 2)) % 3;
       }
 
-      if (frequenz > 12500000) frequenz = 12500000;
+      if (frequenz > 12500000) frequenz = 12500000;  
       updateDisplay();
       letzteAenderung = millis();
     }
@@ -169,4 +187,17 @@ void updateDisplay() {
     lcd.print(">>> SIGNAL OFF <<<");
   }
 
+}
+
+void applyDDS() {
+  if (!outputAktiv) {
+    dds.setWave(AD9833_OFF);
+  } else {
+    // Wellenform setzen
+    if (waveMode == 0) dds.setWave(AD9833_SINE);
+    else if (waveMode == 1) dds.setWave(AD9833_SQUARE1); // Rechteck
+    else dds.setWave(AD9833_TRIANGLE);
+    
+    dds.setFrequency(frequenz, 0);
+  }
 }
