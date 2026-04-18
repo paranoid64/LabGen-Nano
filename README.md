@@ -7,7 +7,7 @@ LabGen Nano ist ein kompakter, präziser Funktionsgenerator auf Arduino-Basis, d
 - 1x AD9833 DDS Modul
 - 1x YB2004D V3.0 LCD Panel (20x4 Zeichen)
 - 2x Widerstand 220 Ohm (Schutzwiderstand)
-- 1x Folienkondensator (für AC-Kopplung)
+- 1x Folienkondensator 105 1000nF/1uF (für AC-Kopplung)
 - 2x BNC-Einbaubuchsen
 - 1x LED
 - 1x Taster
@@ -70,7 +70,7 @@ FNC (CS)     -> Nano D10
 
 ### SIGNAL-AUSGANG:
 ```
-VOUT (AD9833) --- [200 Ohm] ---+---> BNC "DC"
+VOUT (AD9833) --- [220 Ohm] ---+---> BNC "DC"
                                |
                                +--- [Kondensator] ---> BNC "AC"
 GND (AD9833) ----------------------------------------> BNC Masse
