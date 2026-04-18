@@ -1,29 +1,34 @@
 #include <LiquidCrystal.h>
 #include "AD9833.h"
 
-// LCD Pins bleiben wie bisher
-LiquidCrystal lcd(8, 7, 2, 3, 4, 5);
+// --- KONFIGURATION (Festwerte) ---
+#define ENCODER_SPEED 50
+#define DEBOUNCE_TIME 150
+#define MAX_FREQ 12500000
 
-// (Pin 10 ist FSYNC)
+// --- PIN-DEFINITIONEN ---
+#define pinBuzzer    A3
+#define pinButton    A2
+#define pinKill      A4
+#define pinEncA      A0
+#define pinEncB      A1
+#define pinLEDStatus A5
+#define ddsFSYNC     10
+
+LiquidCrystal lcd(8, 7, 2, 3, 4, 5);
 AD9833 dds(10);
 
-// Pin-Anpassung für SD-Kompatibilität und DDS
-const int pinBuzzer = A3;
-const int pinButton = A2;
-const int pinKill   = A4;
-const int pinEncA   = A0; 
-const int pinEncB   = A1; 
-const int pinLEDStatus = A5; // Status LED für Output
-
 unsigned long frequenz = 1000;
-unsigned long multiplikator[] = {1, 1000, 1000000}; 
-int einheitModus = 0; 
-int waveMode = 0; 
+// Multiplikator liegt jetzt nur im Flash (spart RAM)
+const unsigned long multiplikator[] PROGMEM = {1, 1000, 1000000}; 
+
+uint8_t einheitModus = 0; 
+uint8_t waveMode     = 0; 
 bool outputAktiv = false;
 
-int letzterStatusA;
+bool letzterStatusA;
 unsigned long letzteAenderung = 0;
-bool killGedrueckt = false; // Für Entprellung Switch
+bool killGedrueckt = false; 
 
 bool blinkStatus = true;
 unsigned long letzteBlinkZeit = 0;
@@ -32,54 +37,43 @@ void setup() {
   pinMode(pinBuzzer, OUTPUT);
   digitalWrite(pinBuzzer, LOW); 
   pinMode(pinButton, INPUT_PULLUP);
-  pinMode(pinKill, INPUT_PULLUP);    // Switch Eingang
+  pinMode(pinKill, INPUT_PULLUP);    
   pinMode(pinEncA, INPUT_PULLUP); 
   pinMode(pinEncB, INPUT_PULLUP);
   pinMode(pinLEDStatus, OUTPUT);
   
   lcd.begin(20, 4);
   
-  // Splash Screen
   lcd.setCursor(3, 1);
-  lcd.print("LabGen-Nano");
+  lcd.print(F("LabGen-Nano"));
   lcd.setCursor(6, 2);
-  lcd.print("v1.0");
+  lcd.print(F("v1.0"));
   delay(2000); 
   lcd.clear();
   
   letzterStatusA = digitalRead(pinEncA);
   updateDisplay();
 
-  SPI.begin(); // Robs Library braucht meist ein explizites SPI.begin()
+  SPI.begin(); 
   dds.begin();
-  dds.setFrequency(1000, 0); // 1000 Hz auf Register 0
-  dds.setWave(AD9833_OFF);   // Startet im Standby
-  
+  dds.setFrequency(1000, 0); 
+  dds.setWave(AD9833_OFF);   
 }
 
 void loop() {
-  // 1. Kill-Switch (Start/Stop) mit Entprellung
+  // 1. Kill-Switch
   bool killStatus = (digitalRead(pinKill) == LOW); 
-
   if (killStatus && !killGedrueckt) {
-    // Taste wurde gerade gedrückt
     outputAktiv = !outputAktiv; 
-
     applyDDS();
-    
-    digitalWrite(pinBuzzer, HIGH); 
-    delay(100); 
-    digitalWrite(pinBuzzer, LOW);
-    
+    digitalWrite(pinBuzzer, HIGH); delay(100); digitalWrite(pinBuzzer, LOW);
     updateDisplay();
-    
     killGedrueckt = true; 
-    letzteAenderung = millis(); // Zeitstempel merken
+    letzteAenderung = millis(); 
   } 
 
-  // Nur zurücksetzen, wenn Taste losgelassen UND 50ms vergangen sind
   if (!killStatus && killGedrueckt) {
-    if (millis() - letzteAenderung > 100) { 
+    if (millis() - letzteAenderung > DEBOUNCE_TIME) { 
       killGedrueckt = false;
     }
   }
@@ -87,34 +81,36 @@ void loop() {
   // 2. Encoder DREHEN
   int aktuellerStatusA = digitalRead(pinEncA);
   if (letzterStatusA == HIGH && aktuellerStatusA == LOW) {
-    if (millis() - letzteAenderung > 50) {
+    if (millis() - letzteAenderung > ENCODER_SPEED) {
       bool hoch = (digitalRead(pinEncB) == LOW); 
       
-      // SICHERHEIT: Falls der Output aktiv war, schalten wir ihn jetzt aus
-      if (outputAktiv) {
+      if (outputAktiv) { 
         outputAktiv = false;
-        applyDDS(); // Stoppt das Signal hardwareseitig
+        applyDDS(); 
       }
 
       if (einheitModus < 3) { 
-        if (hoch) frequenz += multiplikator[einheitModus];
-        else if (frequenz >= multiplikator[einheitModus]) frequenz -= multiplikator[einheitModus];
+        // Wert aus Flash lesen
+        unsigned long m = pgm_read_dword(&(multiplikator[einheitModus]));
+        if (hoch) frequenz += m;
+        else if (frequenz >= m) frequenz -= m;
       } 
       else if (einheitModus == 3) { 
         waveMode = (waveMode + (hoch ? 1 : 2)) % 3;
       }
 
-      if (frequenz > 12500000) frequenz = 12500000;  
+      if (frequenz > MAX_FREQ) frequenz = MAX_FREQ;  
       updateDisplay();
       letzteAenderung = millis();
     }
   }
   letzterStatusA = aktuellerStatusA;
 
-  // 3. Encoder KLICKEN (Menü-Wechsel)
+  // 3. Encoder KLICKEN
   if (digitalRead(pinButton) == LOW) {
     digitalWrite(pinBuzzer, HIGH); delay(30); digitalWrite(pinBuzzer, LOW);
-    einheitModus = (einheitModus + 1) % 5; 
+    // Hier auf % 4 geändert, da wir 4 Modi haben (0,1,2,3)
+    einheitModus = (einheitModus + 1) % 4; 
     updateDisplay();
     while(digitalRead(pinButton) == LOW); 
   }
@@ -125,79 +121,66 @@ void loop() {
     letzteBlinkZeit = millis();
     updateDisplay();
   }
-
   digitalWrite(pinLEDStatus, outputAktiv ? HIGH : LOW);
-
 }
 
 void updateDisplay() {
   char tempBuffer[10]; 
 
-  // Zeile 1: Frequenz
   lcd.setCursor(0, 0);
-  lcd.print("FREQ:"); 
+  lcd.print(F("FREQ:")); 
   
   unsigned long mhz = frequenz / 1000000;
   unsigned long khz = (frequenz % 1000000) / 1000;
   unsigned long hz  = frequenz % 1000;
 
-  // MHz
   lcd.setCursor(5, 0);
-  if (einheitModus == 2 && !blinkStatus) lcd.print("  "); 
+  if (einheitModus == 2 && !blinkStatus) lcd.print(F("  ")); 
   else { sprintf(tempBuffer, "%02lu", mhz); lcd.print(tempBuffer); }
-  lcd.print(".");
+  lcd.print(F("."));
 
-  // kHz
   lcd.setCursor(8, 0);
-  if (einheitModus == 1 && !blinkStatus) lcd.print("   "); 
+  if (einheitModus == 1 && !blinkStatus) lcd.print(F("   ")); 
   else { sprintf(tempBuffer, "%03lu", khz); lcd.print(tempBuffer); }
-  lcd.print(".");
+  lcd.print(F("."));
 
-  // Hz
   lcd.setCursor(12, 0);
-  if (einheitModus == 0 && !blinkStatus) lcd.print("   "); 
+  if (einheitModus == 0 && !blinkStatus) lcd.print(F("   ")); 
   else { sprintf(tempBuffer, "%03lu", hz); lcd.print(tempBuffer); }
-  lcd.print(" Hz");
+  lcd.print(F(" Hz"));
 
-  // Zeile 2: Pfeil
   lcd.setCursor(0, 1);
-  lcd.print("                    "); 
+  lcd.print(F("                ")); // Auf 16 Leerzeichen gekürzt
   if (einheitModus < 3) {
     int pfeilPos = (einheitModus == 2) ? 5 : (einheitModus == 1 ? 9 : 13);
     lcd.setCursor(pfeilPos, 1);
-    lcd.print("^");
+    lcd.print(F("^"));
   }
 
-  // Zeile 3: Wellenform
   lcd.setCursor(0, 2);
-  lcd.print("WAVE: "); 
+  lcd.print(F("WAVE: ")); 
   lcd.setCursor(6, 2);
-  if (einheitModus == 3 && !blinkStatus) lcd.print("        "); 
+  if (einheitModus == 3 && !blinkStatus) lcd.print(F("        ")); 
   else {
-    if (waveMode == 0) lcd.print("SINUS   ");
-    else if (waveMode == 1) lcd.print("RECHTECK");
-    else if (waveMode == 2) lcd.print("DREIECK ");
+    if (waveMode == 0) lcd.print(F("SINUS   "));
+    else if (waveMode == 1) lcd.print(F("RECHTECK"));
+    else if (waveMode == 2) lcd.print(F("DREIECK "));
   }
 
-  // Zeile 4: Status
-  lcd.setCursor(0, 3);
-  if (outputAktiv) {
-    lcd.print(">>> SIGNAL ON  <<<");
-  } else {
-    lcd.print(">>> SIGNAL OFF <<<");
-  }
-
+  lcd.setCursor(0, 3); 
+  if (outputAktiv) lcd.print(F(">>> SIGNAL ON  <<<"));
+  else lcd.print(F(">>> SIGNAL OFF <<<"));
 }
 
 void applyDDS() {
   if (!outputAktiv) {
     dds.setWave(AD9833_OFF);
+    dds.setPowerMode(AD9833_PWR_DISABLE_ALL);
   } else {
-    // Wellenform setzen
+    dds.setPowerMode(AD9833_PWR_ON);
     if (waveMode == 0) dds.setWave(AD9833_SINE);
-    else if (waveMode == 1) dds.setWave(AD9833_SQUARE1); // Rechteck
+    else if (waveMode == 1) dds.setWave(AD9833_SQUARE1); 
     else dds.setWave(AD9833_TRIANGLE);
-    
     dds.setFrequency(frequenz, 0);
   }
 }
