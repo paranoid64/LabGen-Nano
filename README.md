@@ -35,7 +35,7 @@ Pin 06	LCD_D5	        -> Nano D2
 Pin 07	LCD_D6	        -> Nano D3
 Pin 08	LCD_D7	        -> Nano D4
 Pin 09	GND	            -> Nano GND
-Pin 10	VCC (+5V)	      -> Nano 5V
+Pin 10	VCC (+5V)       -> Nano 5V
 ```
 
 ### EXP2 (SD-Karte & Encoder):
