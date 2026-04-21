@@ -26,17 +26,16 @@ ____________________________
 ### EXP1 (Display & Sound):
 
 ```
-Pin 01 (Oben L) : Buzzer          -> Nano A3
-Pin 02 (Unten L): Encoder Button  -> Nano A2
-Pin 03          : LCD_E (Enable)  -> Nano D7
-Pin 04          : LCD_RS          -> Nano D8
-Pin 05          : LCD_D4          -> Nano D2
-Pin 06          : LCD_D5          -> Nano D3
-Pin 07          : LCD_D6          -> Nano D4
-Pin 08          : LCD_D7          -> Nano D5
-Pin 09          : GND             -> Nano GND
-Pin 10 (Unten R): VCC (+5V)       -> Nano 5V
-
+Pin 01	Buzzer          -> Nano A3
+Pin 02	Encoder Button	-> Nano A2
+Pin 03	LCD_E (Enable)	-> Nano D7
+Pin 04	LCD_RS	        -> Nano D8
+Pin 05	LCD_D4	        -> Nano D5
+Pin 06	LCD_D5	        -> Nano D2
+Pin 07	LCD_D6	        -> Nano D3
+Pin 08	LCD_D7	        -> Nano D4
+Pin 09	GND	            -> Nano GND
+Pin 10	VCC (+5V)	      -> Nano 5V
 ```
 
 ### EXP2 (SD-Karte & Encoder):
