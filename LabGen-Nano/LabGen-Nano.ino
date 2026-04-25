@@ -16,6 +16,7 @@
 #define ddsFSYNC     10
 
 LiquidCrystal lcd(8, 7, 2, 3, 4, 5);
+//LiquidCrystal lcd(8, 7, 5, 2, 3, 4);
 AD9833 dds(10);
 
 unsigned long frequenz = 1000;
