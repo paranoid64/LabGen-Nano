@@ -5,6 +5,7 @@
 #define ENCODER_SPEED 50
 #define DEBOUNCE_TIME 150
 #define MAX_FREQ 12500000
+#define ENCODER_REVERSED 0  // 0 Off , 1 On
 
 // --- PIN-DEFINITIONEN ---
 #define pinBuzzer    A3
@@ -83,7 +84,13 @@ void loop() {
   int aktuellerStatusA = digitalRead(pinEncA);
   if (letzterStatusA == HIGH && aktuellerStatusA == LOW) {
     if (millis() - letzteAenderung > ENCODER_SPEED) {
-      bool hoch = (digitalRead(pinEncB) == LOW); 
+      
+      // Bestimmt die Richtung basierend auf dem Schalter
+      #if ENCODER_REVERSED
+        bool hoch = (digitalRead(pinEncB) == HIGH); 
+      #else
+        bool hoch = (digitalRead(pinEncB) == LOW);
+      #endif
       
       if (outputAktiv) { 
         outputAktiv = false;
@@ -91,10 +98,12 @@ void loop() {
       }
 
       if (einheitModus < 3) { 
-        // Wert aus Flash lesen
         unsigned long m = pgm_read_dword(&(multiplikator[einheitModus]));
-        if (hoch) frequenz += m;
-        else if (frequenz >= m) frequenz -= m;
+        if (hoch) {
+          frequenz += m;
+        } else if (frequenz >= m) {
+          frequenz -= m;
+        }
       } 
       else if (einheitModus == 3) { 
         waveMode = (waveMode + (hoch ? 1 : 2)) % 3;
@@ -106,6 +115,7 @@ void loop() {
     }
   }
   letzterStatusA = aktuellerStatusA;
+
 
   // 3. Encoder KLICKEN
   if (digitalRead(pinButton) == LOW) {
